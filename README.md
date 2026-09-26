@@ -6,7 +6,7 @@
 ---
 
 ## Features
-- **User Authentication:** User registration, secure login/logout, session persistence (`SharedPreferences`), SHA-256 password hashing, and input validation.
+- **User Authentication:** User registration, secure login/logout, session persistence (`SharedPreferences`), BCrypt password hashing, and input validation.
 - **Dashboard:** Welcome summary, Vehicle Health Score (0–100 indicator with service alerts), quick stats (Odometer, Avg L/100km, Total Costs), and quick action dialogs (`Log Fuel`, `Log Maintenance`).
 - **Vehicle Management:** Add, edit, delete, view vehicle details, and select primary default vehicle with input validation.
 - **Fuel Tracking & Consumption Efficiency:** Fuel fill-up log history, automatic total cost calculation, and `L/100km` efficiency calculations with division-by-zero safeguards.
@@ -32,7 +32,7 @@
 ## Unit Testing
 DrivePulse includes 38 comprehensive unit tests covering:
 - Authentication input validation (Name, Email format, Password strength)
-- SHA-256 password hashing determinism & security
+- BCrypt password hashing determinism & security
 - Vehicle input validation (Make, Model, Year range, Odometer, VIN)
 - Fuel calculations & edge cases (Total cost, `L/100km` efficiency, zero-distance handling, negative odometer handling)
 - Maintenance validation (Cost, Odometer, Next service odometer)
