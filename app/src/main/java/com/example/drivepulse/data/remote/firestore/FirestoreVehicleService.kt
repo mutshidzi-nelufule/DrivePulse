@@ -2,7 +2,10 @@ package com.example.drivepulse.data.remote.firestore
 
 import android.util.Log
 import com.example.drivepulse.data.model.Vehicle
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -29,10 +32,13 @@ class FirestoreVehicleService {
                 return@suspendCancellableCoroutine
             }
 
-            val collection = db.collection("vehicles")
-            val docRef = if (vehicle.id.isBlank()) collection.document() else collection.document(vehicle.id)
+            val docRef: DocumentReference = if (vehicle.id.isBlank()) {
+                db.collection("vehicles").document()
+            } else {
+                db.collection("vehicles").document(vehicle.id)
+            }
 
-            val vehicleData = hashMapOf<String, Any>(
+            val vehicleData: Map<String, Any> = mapOf(
                 "make" to vehicle.make,
                 "model" to vehicle.model,
                 "year" to vehicle.year,
@@ -46,7 +52,7 @@ class FirestoreVehicleService {
                     Log.d("DrivePulseFirestore", "Saved vehicle ${docRef.id}")
                     if (continuation.isActive) continuation.resume(Result.success(docRef.id))
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener { e: Exception ->
                     Log.e("DrivePulseFirestore", "Failed to save vehicle", e)
                     if (continuation.isActive) continuation.resume(Result.failure(e))
                 }
@@ -64,7 +70,7 @@ class FirestoreVehicleService {
             }
 
             db.collection("vehicles").document(vehicleId).get()
-                .addOnSuccessListener { doc ->
+                .addOnSuccessListener { doc: DocumentSnapshot? ->
                     if (doc != null && doc.exists()) {
                         val make = doc.getString("make") ?: ""
                         val model = doc.getString("model") ?: ""
@@ -89,7 +95,7 @@ class FirestoreVehicleService {
                         if (continuation.isActive) continuation.resume(Result.success(null))
                     }
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener { e: Exception ->
                     if (continuation.isActive) continuation.resume(Result.failure(e))
                 }
         } catch (e: Exception) {
@@ -106,10 +112,11 @@ class FirestoreVehicleService {
             }
 
             db.collection("vehicles").get()
-                .addOnSuccessListener { snapshot ->
+                .addOnSuccessListener { snapshot: QuerySnapshot? ->
                     val list = mutableListOf<Vehicle>()
                     if (snapshot != null) {
-                        for (doc in snapshot.documents) {
+                        val documents: List<DocumentSnapshot> = snapshot.documents
+                        for (doc in documents) {
                             val make = doc.getString("make") ?: ""
                             val model = doc.getString("model") ?: ""
                             val year = doc.getLong("year")?.toInt() ?: 2020
@@ -134,7 +141,7 @@ class FirestoreVehicleService {
                     }
                     if (continuation.isActive) continuation.resume(Result.success(list))
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener { e: Exception ->
                     if (continuation.isActive) continuation.resume(Result.failure(e))
                 }
         } catch (e: Exception) {
@@ -154,7 +161,7 @@ class FirestoreVehicleService {
                 .addOnSuccessListener {
                     if (continuation.isActive) continuation.resume(Result.success(Unit))
                 }
-                .addOnFailureListener { e ->
+                .addOnFailureListener { e: Exception ->
                     if (continuation.isActive) continuation.resume(Result.failure(e))
                 }
         } catch (e: Exception) {
