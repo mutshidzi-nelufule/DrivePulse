@@ -2,6 +2,7 @@ package com.example.drivepulse.data.remote.firestore
 
 import android.util.Log
 import com.example.drivepulse.data.model.Vehicle
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -15,7 +16,7 @@ class FirestoreVehicleService {
     private val vehiclesCollection = db.collection("vehicles")
 
     /**
-     * Saves or updates a vehicle record in Cloud Firestore.
+     * Saves or updates a vehicle record in Cloud Firestore "vehicles" collection.
      */
     suspend fun saveVehicle(vehicle: Vehicle): Result<String> {
         return try {
@@ -25,7 +26,7 @@ class FirestoreVehicleService {
                 vehiclesCollection.document(vehicle.id)
             }
 
-            val vehicleData = mapOf(
+            val vehicleData: Map<String, Any> = mapOf(
                 "make" to vehicle.make,
                 "model" to vehicle.model,
                 "year" to vehicle.year,
@@ -44,15 +45,45 @@ class FirestoreVehicleService {
     }
 
     /**
+     * Retrieves a single vehicle document by ID (e.g. "vehicle_001").
+     */
+    suspend fun getVehicleById(vehicleId: String): Result<Vehicle?> {
+        return try {
+            val doc: DocumentSnapshot = vehiclesCollection.document(vehicleId).get().await()
+            if (doc.exists()) {
+                val vehicle = Vehicle(
+                    id = doc.id,
+                    userId = "default_user",
+                    make = doc.getString("make") ?: "",
+                    model = doc.getString("model") ?: "",
+                    year = doc.getLong("year")?.toInt() ?: doc.getString("year")?.toIntOrNull() ?: 2020,
+                    registrationNumber = doc.getString("registrationNumber") ?: "",
+                    fuelType = doc.getString("fuelType") ?: "Petrol",
+                    currentOdometer = doc.getLong("currentMileage")?.toInt()
+                        ?: doc.getLong("currentOdometer")?.toInt()
+                        ?: 0,
+                    isDefault = false
+                )
+                Result.success(vehicle)
+            } else {
+                Result.success(null)
+            }
+        } catch (e: Exception) {
+            Log.e("DrivePulseFirestore", "Error fetching vehicle $vehicleId from Firestore", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Retrieves all vehicle documents from Cloud Firestore and converts them to Vehicle models.
      */
     suspend fun getVehicles(): Result<List<Vehicle>> {
         return try {
             val snapshot = vehiclesCollection.get().await()
-            val vehicleList = snapshot.documents.mapNotNull { doc ->
+            val vehicleList: List<Vehicle> = snapshot.documents.mapNotNull { doc: DocumentSnapshot ->
                 val make = doc.getString("make") ?: ""
                 val model = doc.getString("model") ?: ""
-                val year = doc.getLong("year")?.toInt() ?: doc.getString("year")?.toIntOrNull() ?: 2024
+                val year = doc.getLong("year")?.toInt() ?: doc.getString("year")?.toIntOrNull() ?: 2020
                 val regNo = doc.getString("registrationNumber") ?: ""
                 val fuelType = doc.getString("fuelType") ?: "Petrol"
                 val mileage = doc.getLong("currentMileage")?.toInt()

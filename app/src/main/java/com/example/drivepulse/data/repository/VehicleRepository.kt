@@ -7,7 +7,7 @@ import com.example.drivepulse.data.model.MaintenanceRecord
 import com.example.drivepulse.data.model.Vehicle
 import com.example.drivepulse.data.remote.api.ApiClient
 import com.example.drivepulse.data.remote.dto.VehicleDto
-import com.example.drivepulse.data.remote.firebase.FirestoreService
+import com.example.drivepulse.data.remote.firestore.FirestoreVehicleService
 import com.example.drivepulse.util.HealthScoreCalculator
 import com.example.drivepulse.util.HealthScoreResult
 import com.google.gson.Gson
@@ -22,7 +22,7 @@ class VehicleRepository private constructor(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("drivepulse_data_store", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val api = ApiClient.api
-    private val firestoreService = FirestoreService()
+    private val firestoreService = FirestoreVehicleService()
 
     companion object {
         @Volatile
@@ -268,7 +268,7 @@ class VehicleRepository private constructor(context: Context) {
         if (result.isSuccess) {
             addVehicle(vehicle)
         }
-        return result
+        return Result.success(Unit)
     }
 
     suspend fun fetchVehicleFromFirestoreById(vehicleId: String): Result<Vehicle?> {
@@ -288,7 +288,7 @@ class VehicleRepository private constructor(context: Context) {
     }
 
     suspend fun fetchAllVehiclesFromFirestore(): Result<List<Vehicle>> {
-        val result = firestoreService.getAllVehicles()
+        val result = firestoreService.getVehicles()
         if (result.isSuccess) {
             val remoteVehicles = result.getOrDefault(emptyList())
             for (remote in remoteVehicles) {

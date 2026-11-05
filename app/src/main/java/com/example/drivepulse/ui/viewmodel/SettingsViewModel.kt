@@ -9,7 +9,6 @@ import com.example.drivepulse.data.local.Currency
 import com.example.drivepulse.data.local.DistanceUnit
 import com.example.drivepulse.data.local.FuelUnit
 import com.example.drivepulse.data.local.SettingsManager
-import com.example.drivepulse.data.local.SettingsPreferences
 import com.example.drivepulse.data.local.ThemeMode
 import com.example.drivepulse.data.model.Vehicle
 import com.example.drivepulse.data.repository.VehicleRepository
