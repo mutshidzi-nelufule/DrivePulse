@@ -51,7 +51,7 @@ class VehicleRepository private constructor(context: Context) {
 
     private fun loadFromPersistentStorage() {
         val vehiclesJson = prefs.getString(KEY_VEHICLES, null)
-        if (!vehiclesJson.isNull_or_blank()) {
+        if (!vehiclesJson.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<Vehicle>>() {}.type
                 val savedVehicles: List<Vehicle> = gson.fromJson(vehiclesJson, type) ?: emptyList()
@@ -69,7 +69,7 @@ class VehicleRepository private constructor(context: Context) {
         }
 
         val fuelJson = prefs.getString(KEY_FUEL_RECORDS, null)
-        if (!fuelJson.isNull_or_blank()) {
+        if (!fuelJson.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<FuelRecord>>() {}.type
                 val savedFuel: List<FuelRecord> = gson.fromJson(fuelJson, type) ?: emptyList()
@@ -87,7 +87,7 @@ class VehicleRepository private constructor(context: Context) {
         }
 
         val maintJson = prefs.getString(KEY_MAINTENANCE_RECORDS, null)
-        if (!maintJson.isNull_or_blank()) {
+        if (!maintJson.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<MaintenanceRecord>>() {}.type
                 val savedMaint: List<MaintenanceRecord> = gson.fromJson(maintJson, type) ?: emptyList()
@@ -105,8 +105,6 @@ class VehicleRepository private constructor(context: Context) {
         }
     }
 
-    private fun CharSequence?.isNull_or_blank(): Boolean = this == null || this.trim().isEmpty()
-
     private fun loadDefaultDemoData() {
         if (vehicles.isEmpty()) {
             vehicles.add(
@@ -121,7 +119,7 @@ class VehicleRepository private constructor(context: Context) {
                     fuelType = "Petrol",
                     currentOdometer = 48500,
                     serviceIntervalKm = 15000,
-                    isDefault = true
+                    isDefault = true,
                 )
             )
             saveVehiclesToDisk()

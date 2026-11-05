@@ -144,7 +144,7 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
             }
             is VehicleValidationResult.Success -> {
                 val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-                val vehicleId = if (formState.id.isNull_or_blank()) UUID.randomUUID().toString() else formState.id!!
+                val vehicleId = if (formState.id.isNullOrBlank()) UUID.randomUUID().toString() else formState.id!!
 
                 val vehicle = Vehicle(
                     id = vehicleId,
@@ -184,7 +184,6 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun CharSequence?.isNull_or_blank(): Boolean = this == null || this.trim().isEmpty()
 
     fun deleteVehicle(vehicleId: String, onSuccess: () -> Unit = {}) {
         repository.deleteVehicle(vehicleId)
