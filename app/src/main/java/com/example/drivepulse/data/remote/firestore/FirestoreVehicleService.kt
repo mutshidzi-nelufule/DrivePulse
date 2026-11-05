@@ -2,31 +2,37 @@ package com.example.drivepulse.data.remote.firestore
 
 import android.util.Log
 import com.example.drivepulse.data.model.Vehicle
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
- * Isolated Cloud Firestore service for DrivePulse vehicle records.
- * Interacts with the "vehicles" collection in Firebase Cloud Firestore.
+ * Cloud Firestore service for DrivePulse vehicle records.
+ * Manages operations on the "vehicles" collection.
  */
 class FirestoreVehicleService {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val vehiclesCollection = db.collection("vehicles")
-
-    /**
-     * Saves or updates a vehicle record in Cloud Firestore "vehicles" collection.
-     */
-    suspend fun saveVehicle(vehicle: Vehicle): Result<String> {
+    private fun getDb(): FirebaseFirestore? {
         return try {
-            val docRef = if (vehicle.id.isBlank()) {
-                vehiclesCollection.document()
-            } else {
-                vehiclesCollection.document(vehicle.id)
+            FirebaseFirestore.getInstance()
+        } catch (e: Exception) {
+            Log.e("DrivePulseFirestore", "Firebase instance not ready", e)
+            null
+        }
+    }
+
+    suspend fun saveVehicle(vehicle: Vehicle): Result<String> = suspendCancellableCoroutine { continuation ->
+        try {
+            val db = getDb()
+            if (db == null) {
+                continuation.resume(Result.failure(Exception("Firestore not initialized")))
+                return@suspendCancellableCoroutine
             }
 
-            val vehicleData: Map<String, Any> = mapOf(
+            val collection = db.collection("vehicles")
+            val docRef = if (vehicle.id.isBlank()) collection.document() else collection.document(vehicle.id)
+
+            val vehicleData = hashMapOf<String, Any>(
                 "make" to vehicle.make,
                 "model" to vehicle.model,
                 "year" to vehicle.year,
@@ -35,94 +41,124 @@ class FirestoreVehicleService {
                 "currentMileage" to vehicle.currentOdometer
             )
 
-            docRef.set(vehicleData).await()
-            Log.d("DrivePulseFirestore", "Saved vehicle to Firestore with doc ID: ${docRef.id}")
-            Result.success(docRef.id)
+            docRef.set(vehicleData)
+                .addOnSuccessListener {
+                    Log.d("DrivePulseFirestore", "Saved vehicle ${docRef.id}")
+                    if (continuation.isActive) continuation.resume(Result.success(docRef.id))
+                }
+                .addOnFailureListener { e ->
+                    Log.e("DrivePulseFirestore", "Failed to save vehicle", e)
+                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                }
         } catch (e: Exception) {
-            Log.e("DrivePulseFirestore", "Error saving vehicle to Firestore", e)
-            Result.failure(e)
+            if (continuation.isActive) continuation.resume(Result.failure(e))
         }
     }
 
-    /**
-     * Retrieves a single vehicle document by ID (e.g. "vehicle_001").
-     */
-    suspend fun getVehicleById(vehicleId: String): Result<Vehicle?> {
-        return try {
-            val doc: DocumentSnapshot = vehiclesCollection.document(vehicleId).get().await()
-            if (doc.exists()) {
-                val vehicle = Vehicle(
-                    id = doc.id,
-                    userId = "default_user",
-                    make = doc.getString("make") ?: "",
-                    model = doc.getString("model") ?: "",
-                    year = doc.getLong("year")?.toInt() ?: doc.getString("year")?.toIntOrNull() ?: 2020,
-                    registrationNumber = doc.getString("registrationNumber") ?: "",
-                    fuelType = doc.getString("fuelType") ?: "Petrol",
-                    currentOdometer = doc.getLong("currentMileage")?.toInt()
-                        ?: doc.getLong("currentOdometer")?.toInt()
-                        ?: 0,
-                    isDefault = false
-                )
-                Result.success(vehicle)
-            } else {
-                Result.success(null)
+    suspend fun getVehicleById(vehicleId: String): Result<Vehicle?> = suspendCancellableCoroutine { continuation ->
+        try {
+            val db = getDb()
+            if (db == null) {
+                continuation.resume(Result.failure(Exception("Firestore not initialized")))
+                return@suspendCancellableCoroutine
             }
+
+            db.collection("vehicles").document(vehicleId).get()
+                .addOnSuccessListener { doc ->
+                    if (doc != null && doc.exists()) {
+                        val make = doc.getString("make") ?: ""
+                        val model = doc.getString("model") ?: ""
+                        val year = doc.getLong("year")?.toInt() ?: 2020
+                        val regNo = doc.getString("registrationNumber") ?: ""
+                        val fuelType = doc.getString("fuelType") ?: "Petrol"
+                        val mileage = doc.getLong("currentMileage")?.toInt() ?: 0
+
+                        val vehicle = Vehicle(
+                            id = doc.id,
+                            userId = "default_user",
+                            make = make,
+                            model = model,
+                            year = year,
+                            registrationNumber = regNo,
+                            fuelType = fuelType,
+                            currentOdometer = mileage,
+                            isDefault = false
+                        )
+                        if (continuation.isActive) continuation.resume(Result.success(vehicle))
+                    } else {
+                        if (continuation.isActive) continuation.resume(Result.success(null))
+                    }
+                }
+                .addOnFailureListener { e ->
+                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                }
         } catch (e: Exception) {
-            Log.e("DrivePulseFirestore", "Error fetching vehicle $vehicleId from Firestore", e)
-            Result.failure(e)
+            if (continuation.isActive) continuation.resume(Result.failure(e))
         }
     }
 
-    /**
-     * Retrieves all vehicle documents from Cloud Firestore and converts them to Vehicle models.
-     */
-    suspend fun getVehicles(): Result<List<Vehicle>> {
-        return try {
-            val snapshot = vehiclesCollection.get().await()
-            val vehicleList: List<Vehicle> = snapshot.documents.mapNotNull { doc: DocumentSnapshot ->
-                val make = doc.getString("make") ?: ""
-                val model = doc.getString("model") ?: ""
-                val year = doc.getLong("year")?.toInt() ?: doc.getString("year")?.toIntOrNull() ?: 2020
-                val regNo = doc.getString("registrationNumber") ?: ""
-                val fuelType = doc.getString("fuelType") ?: "Petrol"
-                val mileage = doc.getLong("currentMileage")?.toInt()
-                    ?: doc.getLong("currentOdometer")?.toInt()
-                    ?: 0
-
-                Vehicle(
-                    id = doc.id,
-                    userId = "default_user",
-                    make = make,
-                    model = model,
-                    year = year,
-                    registrationNumber = regNo,
-                    vin = doc.getString("vin") ?: "",
-                    fuelType = fuelType,
-                    currentOdometer = mileage,
-                    serviceIntervalKm = doc.getLong("serviceIntervalKm")?.toInt() ?: 15000,
-                    isDefault = false
-                )
+    suspend fun getVehicles(): Result<List<Vehicle>> = suspendCancellableCoroutine { continuation ->
+        try {
+            val db = getDb()
+            if (db == null) {
+                continuation.resume(Result.failure(Exception("Firestore not initialized")))
+                return@suspendCancellableCoroutine
             }
-            Log.d("DrivePulseFirestore", "Retrieved ${vehicleList.size} vehicles from Firestore")
-            Result.success(vehicleList)
+
+            db.collection("vehicles").get()
+                .addOnSuccessListener { snapshot ->
+                    val list = mutableListOf<Vehicle>()
+                    if (snapshot != null) {
+                        for (doc in snapshot.documents) {
+                            val make = doc.getString("make") ?: ""
+                            val model = doc.getString("model") ?: ""
+                            val year = doc.getLong("year")?.toInt() ?: 2020
+                            val regNo = doc.getString("registrationNumber") ?: ""
+                            val fuelType = doc.getString("fuelType") ?: "Petrol"
+                            val mileage = doc.getLong("currentMileage")?.toInt() ?: 0
+
+                            list.add(
+                                Vehicle(
+                                    id = doc.id,
+                                    userId = "default_user",
+                                    make = make,
+                                    model = model,
+                                    year = year,
+                                    registrationNumber = regNo,
+                                    fuelType = fuelType,
+                                    currentOdometer = mileage,
+                                    isDefault = false
+                                )
+                            )
+                        }
+                    }
+                    if (continuation.isActive) continuation.resume(Result.success(list))
+                }
+                .addOnFailureListener { e ->
+                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                }
         } catch (e: Exception) {
-            Log.e("DrivePulseFirestore", "Error retrieving vehicles from Firestore", e)
-            Result.failure(e)
+            if (continuation.isActive) continuation.resume(Result.failure(e))
         }
     }
 
-    /**
-     * Deletes a vehicle document from Cloud Firestore.
-     */
-    suspend fun deleteVehicle(vehicleId: String): Result<Unit> {
-        return try {
-            vehiclesCollection.document(vehicleId).delete().await()
-            Log.d("DrivePulseFirestore", "Deleted vehicle $vehicleId from Firestore")
-            Result.success(Unit)
+    suspend fun deleteVehicle(vehicleId: String): Result<Unit> = suspendCancellableCoroutine { continuation ->
+        try {
+            val db = getDb()
+            if (db == null) {
+                continuation.resume(Result.failure(Exception("Firestore not initialized")))
+                return@suspendCancellableCoroutine
+            }
+
+            db.collection("vehicles").document(vehicleId).delete()
+                .addOnSuccessListener {
+                    if (continuation.isActive) continuation.resume(Result.success(Unit))
+                }
+                .addOnFailureListener { e ->
+                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                }
         } catch (e: Exception) {
-            Log.e("DrivePulseFirestore", "Error deleting vehicle from Firestore", e)
-            Result.failure(e)
+            if (continuation.isActive) continuation.resume(Result.failure(e))
         }
     }
 }
