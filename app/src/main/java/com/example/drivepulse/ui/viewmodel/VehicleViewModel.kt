@@ -191,6 +191,7 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
         onSuccess()
 
         viewModelScope.launch {
+            repository.deleteVehicleFromFirestore(vehicleId)
             repository.deleteVehicleFromApi(vehicleId)
         }
     }

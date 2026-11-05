@@ -302,6 +302,14 @@ class VehicleRepository private constructor(context: Context) {
         return result
     }
 
+    suspend fun deleteVehicleFromFirestore(vehicleId: String): Result<Unit> {
+        val result = firestoreService.deleteVehicle(vehicleId)
+        if (result.isSuccess) {
+            deleteVehicle(vehicleId)
+        }
+        return result
+    }
+
     // --- REST API Methods ---
 
     suspend fun fetchVehiclesFromApi(): Result<List<Vehicle>> {
