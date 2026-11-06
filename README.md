@@ -1,7 +1,7 @@
 # DrivePulse — Vehicle Maintenance & Fuel Tracking Android App
 
 ## Overview
-**DrivePulse** is a college/university Portfolio of Evidence (PoE) Android application developed using **Kotlin** and **Jetpack Compose**. It helps vehicle owners manage vehicle specifications, track fuel fill-ups, calculate fuel consumption efficiency (`L/100km`), log maintenance services, monitor upcoming service alerts, and view total running cost reports.
+**DrivePulse** is a college Portfolio of Evidence (PoE) Android application developed using **Kotlin** and **Jetpack Compose**. It helps vehicle owners manage vehicle specifications, track fuel fill-ups, calculate fuel consumption efficiency (`L/100km`), log maintenance services, monitor upcoming service alerts, and view total running cost reports.
 
 ---
 
