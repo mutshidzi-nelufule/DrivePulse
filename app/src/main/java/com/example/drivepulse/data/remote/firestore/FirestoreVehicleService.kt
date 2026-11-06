@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
@@ -47,7 +48,7 @@ class FirestoreVehicleService {
                 "currentMileage" to vehicle.currentOdometer
             )
 
-            docRef.set(vehicleData)
+            docRef.set(vehicleData, SetOptions.merge())
                 .addOnSuccessListener {
                     Log.d("DrivePulseFirestore", "Saved vehicle ${docRef.id}")
                     if (continuation.isActive) continuation.resume(Result.success(docRef.id))
