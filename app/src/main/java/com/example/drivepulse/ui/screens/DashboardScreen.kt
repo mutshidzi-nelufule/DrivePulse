@@ -48,7 +48,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.example.drivepulse.R
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.drivepulse.ui.components.DrivePulseButton
@@ -175,13 +177,13 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DrivePulseButton(
-                    text = "+ Log Fuel",
+                    text = stringResource(R.string.btn_add_fuel),
                     onClick = { dashboardViewModel.openQuickAddFuel() },
                     icon = Icons.Default.LocalGasStation,
                     modifier = Modifier.weight(1f)
                 )
                 DrivePulseButton(
-                    text = "+ Service",
+                    text = stringResource(R.string.btn_add_service),
                     onClick = { dashboardViewModel.openQuickAddMaintenance() },
                     icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
@@ -200,13 +202,13 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DashboardStatCard(
-                    title = "Current Odometer",
+                    title = stringResource(R.string.label_current_odometer),
                     value = "${vehicle?.currentOdometer ?: 0} km",
                     icon = Icons.Default.Speed,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardStatCard(
-                    title = "Avg Fuel Economy",
+                    title = stringResource(R.string.label_avg_fuel_economy),
                     value = if (state.avgFuelConsumption > 0) "%.1f L/100km".format(state.avgFuelConsumption) else "-- L/100km",
                     icon = Icons.Default.LocalGasStation,
                     modifier = Modifier.weight(1f)
@@ -218,13 +220,13 @@ fun DashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DashboardStatCard(
-                    title = "Fuel Spent",
+                    title = stringResource(R.string.label_fuel_spent),
                     value = "R %.2f".format(state.totalFuelSpending),
                     icon = Icons.Default.LocalGasStation,
                     modifier = Modifier.weight(1f)
                 )
                 DashboardStatCard(
-                    title = "Maintenance Spent",
+                    title = stringResource(R.string.label_maint_spent),
                     value = "R %.2f".format(state.totalMaintenanceSpending),
                     icon = Icons.Default.Build,
                     modifier = Modifier.weight(1f)
