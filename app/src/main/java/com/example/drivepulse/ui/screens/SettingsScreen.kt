@@ -33,18 +33,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.drivepulse.R
 import com.example.drivepulse.data.local.Currency
 import com.example.drivepulse.data.local.DistanceUnit
 import com.example.drivepulse.data.local.FuelUnit
 import com.example.drivepulse.data.local.ThemeMode
 import com.example.drivepulse.ui.components.DrivePulseButton
-import com.example.drivepulse.ui.viewmodel.AuthViewModel
-import com.example.drivepulse.ui.viewmodel.SettingsViewModel
-
 import com.example.drivepulse.ui.components.DrivePulseBottomNavigation
 import com.example.drivepulse.ui.navigation.NavRoutes
+import com.example.drivepulse.ui.viewmodel.AuthViewModel
+import com.example.drivepulse.ui.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +62,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings & Preferences", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -114,7 +115,7 @@ fun SettingsScreen(
             }
 
             // Theme Preference Section
-            SettingsSectionCard(title = "App Theme", icon = Icons.Default.Palette) {
+            SettingsSectionCard(title = stringResource(R.string.settings_app_theme), icon = Icons.Default.Palette) {
                 Column {
                     ThemeOptionRow(
                         label = "System Default",
@@ -135,7 +136,7 @@ fun SettingsScreen(
             }
 
             // Regional & Units Section
-            SettingsSectionCard(title = "Currency & Measurement Units", icon = Icons.Default.Payments) {
+            SettingsSectionCard(title = stringResource(R.string.settings_currency_units), icon = Icons.Default.Payments) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Currency Symbol", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     Row(
@@ -179,7 +180,7 @@ fun SettingsScreen(
 
             // Default Vehicle Preference
             if (vehicles.isNotEmpty()) {
-                SettingsSectionCard(title = "Default Primary Vehicle", icon = Icons.Default.DirectionsCar) {
+                SettingsSectionCard(title = stringResource(R.string.settings_primary_vehicle), icon = Icons.Default.DirectionsCar) {
                     Column {
                         vehicles.forEach { vehicle ->
                             ThemeOptionRow(
@@ -193,14 +194,14 @@ fun SettingsScreen(
             }
 
             // Notifications & Language Section
-            SettingsSectionCard(title = "Notifications & Language", icon = Icons.Default.Notifications) {
+            SettingsSectionCard(title = stringResource(R.string.settings_notifications_language), icon = Icons.Default.Notifications) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Service Reminder Notifications", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.settings_notifications), style = MaterialTheme.typography.bodyMedium)
                         Switch(
                             checked = settings.notificationsEnabled,
                             onCheckedChange = { settingsViewModel.updateNotifications(it) }
@@ -215,7 +216,7 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Language, contentDescription = null)
                             Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                            Text("Language", style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.bodyMedium)
                         }
                         Row {
                             RadioButtonOption("English", selected = settings.language == "English") {
@@ -234,7 +235,7 @@ fun SettingsScreen(
 
             // Logout Action Button
             DrivePulseButton(
-                text = "Log Out of DrivePulse",
+                text = stringResource(R.string.settings_logout),
                 onClick = {
                     authViewModel.logout(onLoggedOut = onLogout)
                 }
