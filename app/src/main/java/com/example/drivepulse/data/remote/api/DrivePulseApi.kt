@@ -1,17 +1,21 @@
 package com.example.drivepulse.data.remote.api
 
 import com.example.drivepulse.data.remote.dto.AuthResponseDto
+import com.example.drivepulse.data.remote.dto.DocumentUploadResponseDto
 import com.example.drivepulse.data.remote.dto.FuelRecordDto
 import com.example.drivepulse.data.remote.dto.LoginRequestDto
 import com.example.drivepulse.data.remote.dto.MaintenanceRecordDto
 import com.example.drivepulse.data.remote.dto.RegisterRequestDto
 import com.example.drivepulse.data.remote.dto.VehicleDto
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -46,4 +50,12 @@ interface DrivePulseApi {
 
     @POST("api/maintenance")
     suspend fun addMaintenanceRecord(@Body record: MaintenanceRecordDto): Response<MaintenanceRecordDto>
+
+    // Supabase Storage Multipart Upload Endpoints
+    @Multipart
+    @POST("api/storage/upload")
+    suspend fun uploadDocument(@Part file: MultipartBody.Part): Response<DocumentUploadResponseDto>
+
+    @DELETE("api/storage/file")
+    suspend fun deleteDocument(@Query("path") path: String): Response<Unit>
 }

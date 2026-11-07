@@ -1,3 +1,34 @@
 <resources>
     <string name="app_name">DrivePulse</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_vehicles">Vehicles</string>
+    <string name="nav_fuel">Fuel</string>
+    <string name="nav_services">Services</string>
+    <string name="nav_reports">Reports</string>
+
+    <string name="settings_title">Settings &amp; Preferences</string>
+    <string name="settings_app_theme">App Theme</string>
+    <string name="settings_currency_units">Currency &amp; Measurement Units</string>
+    <string name="settings_primary_vehicle">Default Primary Vehicle</string>
+    <string name="settings_notifications_language">Notifications &amp; Language</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_notifications">Service Reminder Notifications</string>
+    <string name="settings_logout">Log Out of DrivePulse</string>
+
+    <string name="btn_sign_in">Sign In</string>
+    <string name="btn_register">Register</string>
+    <string name="btn_add_vehicle">Save Vehicle</string>
+    <string name="btn_add_fuel">+ Log Fuel</string>
+    <string name="btn_add_service">+ Service</string>
+
+    <string name="health_score_title">Vehicle Health Score</string>
+    <string name="status_excellent">Excellent</string>
+    <string name="status_good">Good</string>
+    <string name="status_fair">Fair</string>
+    <string name="status_attention">Attention Required</string>
+
+    <string name="label_current_odometer">Current Odometer</string>
+    <string name="label_avg_fuel_economy">Avg Fuel Economy</string>
+    <string name="label_fuel_spent">Fuel Spent</string>
+    <string name="label_maint_spent">Maintenance Spent</string>
 </resources>

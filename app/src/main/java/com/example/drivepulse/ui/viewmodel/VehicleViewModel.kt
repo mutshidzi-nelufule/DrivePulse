@@ -13,6 +13,7 @@ import com.example.drivepulse.util.ValidationUtils
 import com.example.drivepulse.util.VehicleValidationResult
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.UUID
 
 data class VehicleFormState(
     val id: String? = null,
@@ -33,7 +34,7 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
 
     private val repository = VehicleRepository.getInstance(application)
 
-    var vehicles by mutableStateOf<List<Vehicle>>(emptyList())
+    var vehicles by mutableStateOf<List<Vehicle>>(repository.getVehicles())
         private set
 
     var formState by mutableStateOf(VehicleFormState())
@@ -51,104 +52,57 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
 
     fun refreshVehicles() {
         vehicles = repository.getVehicles()
-
-        Log.d(
-            "DrivePulse",
-            "VehicleViewModel refreshVehicles: count = ${vehicles.size}"
-        )
+        Log.d("DrivePulse", "VehicleViewModel refreshVehicles: count = ${vehicles.size}")
     }
 
     fun loadVehicles() {
-
-        isLoading = true
-
+        refreshVehicles()
         viewModelScope.launch {
-
-            val result = repository.fetchVehiclesFromApi()
-
-            result.onSuccess { apiVehicles ->
-
-                vehicles = apiVehicles
-
-                Log.d(
-                    "DrivePulse",
-                    "Vehicles loaded from API: ${apiVehicles.size}"
-                )
-
-            }.onFailure { error ->
-
-                Log.e(
-                    "DrivePulse",
-                    "Failed to load vehicles from API",
-                    error
-                )
-
-                // Keep locally stored vehicles if API is unavailable
-                vehicles = repository.getVehicles()
+            // Fetch from Cloud Firestore (e.g. document vehicle_001)
+            repository.fetchAllVehiclesFromFirestore().onSuccess {
+                refreshVehicles()
             }
-
-            isLoading = false
+            // Fetch from Spring Boot API in background
+            repository.fetchVehiclesFromApi().onSuccess {
+                refreshVehicles()
+            }
         }
     }
 
     fun onMakeChange(value: String) {
-        formState = formState.copy(
-            make = value,
-            errorMessage = null
-        )
+        formState = formState.copy(make = value, errorMessage = null)
     }
 
     fun onModelChange(value: String) {
-        formState = formState.copy(
-            model = value,
-            errorMessage = null
-        )
+        formState = formState.copy(model = value, errorMessage = null)
     }
 
     fun onYearChange(value: String) {
-        formState = formState.copy(
-            yearText = value,
-            errorMessage = null
-        )
+        formState = formState.copy(yearText = value, errorMessage = null)
     }
 
     fun onRegNumberChange(value: String) {
-        formState = formState.copy(
-            regNumber = value,
-            errorMessage = null
-        )
+        formState = formState.copy(regNumber = value, errorMessage = null)
     }
 
     fun onVinChange(value: String) {
-        formState = formState.copy(
-            vin = value,
-            errorMessage = null
-        )
+        formState = formState.copy(vin = value, errorMessage = null)
     }
 
     fun onFuelTypeChange(value: String) {
-        formState = formState.copy(
-            fuelType = value
-        )
+        formState = formState.copy(fuelType = value)
     }
 
     fun onOdometerChange(value: String) {
-        formState = formState.copy(
-            odometerText = value,
-            errorMessage = null
-        )
+        formState = formState.copy(odometerText = value, errorMessage = null)
     }
 
     fun onServiceIntervalChange(value: String) {
-        formState = formState.copy(
-            serviceIntervalText = value
-        )
+        formState = formState.copy(serviceIntervalText = value)
     }
 
     fun onIsDefaultChange(value: Boolean) {
-        formState = formState.copy(
-            isDefault = value
-        )
+        formState = formState.copy(isDefault = value)
     }
 
     fun prepareNewVehicleForm() {
@@ -156,10 +110,7 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun loadVehicleForEdit(vehicleId: String) {
-
-        val vehicle = repository.getVehicleById(vehicleId)
-            ?: return
-
+        val vehicle = repository.getVehicleById(vehicleId) ?: return
         formState = VehicleFormState(
             id = vehicle.id,
             make = vehicle.make,
@@ -175,11 +126,7 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun saveVehicle(onSuccess: () -> Unit) {
-
-        Log.d(
-            "DrivePulse",
-            "saveVehicle clicked: make=${formState.make}, model=${formState.model}"
-        )
+        Log.d("DrivePulse", "saveVehicle clicked with form: make='${formState.make}', model='${formState.model}', year='${formState.yearText}'")
 
         val validation = ValidationUtils.validateVehicle(
             make = formState.make,
@@ -191,212 +138,71 @@ class VehicleViewModel(application: Application) : AndroidViewModel(application)
         )
 
         when (validation) {
-
             is VehicleValidationResult.Error -> {
-
-                Log.e(
-                    "DrivePulse",
-                    "Validation failed: ${validation.message}"
-                )
-
-                formState = formState.copy(
-                    errorMessage = validation.message
-                )
+                Log.e("DrivePulse", "Validation failed: ${validation.message}")
+                formState = formState.copy(errorMessage = validation.message)
             }
-
             is VehicleValidationResult.Success -> {
-
-                val currentId = formState.id
-
-                val currentYear =
-                    Calendar.getInstance().get(Calendar.YEAR)
-
-                val yearInt =
-                    formState.yearText.toIntOrNull()
-                        ?: currentYear
-
-                val odoInt =
-                    formState.odometerText.toIntOrNull()
-                        ?: 0
-
-                val regStr =
-                    formState.regNumber.trim()
-                        .ifEmpty { "REG-NEW" }
+                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                val vehicleId = if (formState.id.isNull_or_blank()) UUID.randomUUID().toString() else formState.id!!
 
                 val vehicle = Vehicle(
-                    id = currentId ?: "",
+                    id = vehicleId,
                     userId = "default_user",
                     make = formState.make.trim(),
                     model = formState.model.trim(),
-                    year = yearInt,
-                    registrationNumber = regStr,
+                    year = formState.yearText.toIntOrNull() ?: currentYear,
+                    registrationNumber = formState.regNumber.trim().ifEmpty { "REG-NEW" },
                     vin = formState.vin.trim(),
-                    fuelType = formState.fuelType.ifBlank {
-                        "Petrol"
-                    },
-                    currentOdometer = odoInt,
-                    serviceIntervalKm =
-                        formState.serviceIntervalText
-                            .toIntOrNull()
-                            ?: 15000,
+                    fuelType = formState.fuelType.ifBlank { "Petrol" },
+                    currentOdometer = formState.odometerText.toIntOrNull() ?: 0,
+                    serviceIntervalKm = formState.serviceIntervalText.toIntOrNull() ?: 15000,
                     isDefault = formState.isDefault
                 )
 
-                isLoading = true
+                // Save locally first for instant UI response
+                if (formState.id == null) {
+                    repository.addVehicle(vehicle)
+                } else {
+                    repository.updateVehicle(vehicle)
+                }
 
+                refreshVehicles()
+                prepareNewVehicleForm()
+                onSuccess()
+
+                // Sync to Cloud Firestore and REST API in background
                 viewModelScope.launch {
-
-                    if (currentId == null) {
-
-                        // NEW VEHICLE
-                        Log.d(
-                            "DrivePulse",
-                            "Sending new vehicle to API..."
-                        )
-
-                        val result =
-                            repository.addVehicleToApi(vehicle)
-
-                        result.onSuccess { savedVehicle ->
-
-                            Log.d(
-                                "DrivePulse",
-                                "Vehicle successfully saved to API. ID=${savedVehicle.id}"
-                            )
-
-                            vehicles =
-                                repository.getVehicles()
-
-                            formState =
-                                VehicleFormState()
-
-                            isLoading = false
-
-                            onSuccess()
-
-                        }.onFailure { error ->
-
-                            Log.e(
-                                "DrivePulse",
-                                "API vehicle creation failed",
-                                error
-                            )
-
-                            formState =
-                                formState.copy(
-                                    errorMessage =
-                                        "Could not save vehicle to server: ${error.message}"
-                                )
-
-                            isLoading = false
-                        }
-
+                    repository.saveVehicleToFirestore(vehicle)
+                    if (formState.id == null) {
+                        repository.addVehicleToApi(vehicle)
                     } else {
-
-                        // UPDATE VEHICLE
-                        Log.d(
-                            "DrivePulse",
-                            "Updating vehicle ID=$currentId"
-                        )
-
-                        val result =
-                            repository.updateVehicleOnApi(vehicle)
-
-                        result.onSuccess { updatedVehicle ->
-
-                            Log.d(
-                                "DrivePulse",
-                                "Vehicle successfully updated. ID=${updatedVehicle.id}"
-                            )
-
-                            vehicles =
-                                repository.getVehicles()
-
-                            formState =
-                                VehicleFormState()
-
-                            isLoading = false
-
-                            onSuccess()
-
-                        }.onFailure { error ->
-
-                            Log.e(
-                                "DrivePulse",
-                                "API vehicle update failed",
-                                error
-                            )
-
-                            formState =
-                                formState.copy(
-                                    errorMessage =
-                                        "Could not update vehicle: ${error.message}"
-                                )
-
-                            isLoading = false
-                        }
+                        repository.updateVehicleOnApi(vehicle)
                     }
                 }
             }
         }
     }
 
-    fun deleteVehicle(
-        vehicleId: String,
-        onSuccess: () -> Unit = {}
-    ) {
+    private fun CharSequence?.isNull_or_blank(): Boolean = this == null || this.trim().isEmpty()
 
-        isLoading = true
+    fun deleteVehicle(vehicleId: String, onSuccess: () -> Unit = {}) {
+        repository.deleteVehicle(vehicleId)
+        refreshVehicles()
+        onSuccess()
 
         viewModelScope.launch {
-
-            val result =
-                repository.deleteVehicleFromApi(vehicleId)
-
-            result.onSuccess {
-
-                Log.d(
-                    "DrivePulse",
-                    "Vehicle deleted from API: $vehicleId"
-                )
-
-                vehicles =
-                    repository.getVehicles()
-
-                isLoading = false
-
-                onSuccess()
-
-            }.onFailure { error ->
-
-                Log.e(
-                    "DrivePulse",
-                    "API vehicle deletion failed",
-                    error
-                )
-
-                errorMessage =
-                    "Could not delete vehicle: ${error.message}"
-
-                isLoading = false
-            }
+            repository.deleteVehicleFromApi(vehicleId)
         }
     }
 
     fun setDefaultVehicle(vehicleId: String) {
-
         repository.setDefaultVehicle(vehicleId)
-
         refreshVehicles()
     }
 
     fun clearError() {
-
         errorMessage = null
-
-        formState =
-            formState.copy(
-                errorMessage = null
-            )
+        formState = formState.copy(errorMessage = null)
     }
 }

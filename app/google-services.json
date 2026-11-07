@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "725406471578",
+    "project_id": "drivepulse-0",
+    "storage_bucket": "drivepulse-0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:725406471578:android:71b02ae765666efe63d623",
+        "android_client_info": {
+          "package_name": "com.example.drivepulse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXWasmQlOeU0t4qKT6lxOe4gVtnTLn7p0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

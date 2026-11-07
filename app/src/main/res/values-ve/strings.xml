@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">DrivePulse</string>
+    <string name="nav_dashboard">Bodobodo</string>
+    <string name="nav_vehicles">Zwimotoro</string>
+    <string name="nav_fuel">Mapfurha</string>
+    <string name="nav_services">Ndindakhombo</string>
+    <string name="nav_reports">Mvhala</string>
+
+    <string name="settings_title">Mugaredzo &amp; Zwitshenwa</string>
+    <string name="settings_app_theme">Muvhala wa Thima</string>
+    <string name="settings_currency_units">Kurenzi &amp; Zwielezi</string>
+    <string name="settings_primary_vehicle">Cimotoro tsha u Thoma</string>
+    <string name="settings_notifications_language">Mulaedza &amp; Luambo</string>
+    <string name="settings_language">Luambo</string>
+    <string name="settings_notifications">Kuhumbudzele kwa Ndindakhombo</string>
+    <string name="settings_logout">Buma mo DrivePulse</string>
+
+    <string name="btn_sign_in">Dzhenisa</string>
+    <string name="btn_register">Nwalisa</string>
+    <string name="btn_add_vehicle">Vhulunga Cimotoro</string>
+    <string name="btn_add_fuel">+ Dzhenisa Mapfurha</string>
+    <string name="btn_add_service">+ Dzhenisa Ndindakhombo</string>
+
+    <string name="health_score_title">Muko wa Mutakalo wa Cimotoro</string>
+    <string name="status_excellent">Vhududi tshothe</string>
+    <string name="status_good">Vhududi</string>
+    <string name="status_fair">Zwi zwavhudi</string>
+    <string name="status_attention">Zwi thoda u lavheleswa</string>
+
+    <string name="label_current_odometer">Khilomitha dza Zwino</string>
+    <string name="label_avg_fuel_economy">Enji ya Mapfurha</string>
+    <string name="label_fuel_spent">Mapfurha o shumiswaho</string>
+    <string name="label_maint_spent">Ndindakhombo yo shumiswaho</string>
+</resources>

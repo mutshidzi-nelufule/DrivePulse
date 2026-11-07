@@ -68,6 +68,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         val updated = settings.copy(language = language)
         settings = updated
         settingsManager.saveSettings(updated)
+        com.example.drivepulse.util.LocaleHelper.setLocale(getApplication(), language)
     }
 
     fun updateDefaultVehicle(vehicleId: String) {

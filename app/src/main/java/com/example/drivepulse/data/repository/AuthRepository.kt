@@ -1,14 +1,16 @@
 package com.example.drivepulse.data.repository
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.example.drivepulse.data.local.SessionManager
 import com.example.drivepulse.data.model.User
-import com.example.drivepulse.data.remote.api.RetrofitClient
+import com.example.drivepulse.data.remote.api.ApiClient
 import com.example.drivepulse.data.remote.dto.LoginRequestDto
 import com.example.drivepulse.data.remote.dto.RegisterRequestDto
 import com.example.drivepulse.util.ValidationUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 sealed class AuthResult {
     data class Success(val user: User) : AuthResult()
@@ -16,19 +18,19 @@ sealed class AuthResult {
 }
 
 /**
- * Repository for managing user authentication, registration, login, and sessions.
+ * Repository managing user authentication, registration, login, and session persistence.
  *
- * Authentication is handled through the Spring Boot REST API.
- * The SessionManager keeps track of the currently logged-in user locally.
+ * Supports remote Spring Boot REST API authentication with local fallback credentials
+ * storage so the app works seamlessly both online and offline.
  */
 class AuthRepository(context: Context) {
 
     private val sessionManager = SessionManager(context)
-
-    private val api = RetrofitClient.apiService
+    private val userPrefs: SharedPreferences = context.getSharedPreferences("drivepulse_registered_users", Context.MODE_PRIVATE)
+    private val api = ApiClient.api
 
     /**
-     * Registers a new user through the REST API.
+     * Registers a new user.
      */
     suspend fun register(
         fullName: String,
@@ -40,31 +42,21 @@ class AuthRepository(context: Context) {
         val trimmedName = fullName.trim()
         val trimmedEmail = email.trim().lowercase()
 
-        // Local validation before sending data to the API
+        // Validation
         if (!ValidationUtils.isValidName(trimmedName)) {
-            return@withContext AuthResult.Error(
-                "Please enter a valid full name (at least 2 characters)."
-            )
+            return@withContext AuthResult.Error("Please enter a valid full name (at least 2 characters).")
         }
-
         if (!ValidationUtils.isValidEmail(trimmedEmail)) {
-            return@withContext AuthResult.Error(
-                "Please enter a valid email address."
-            )
+            return@withContext AuthResult.Error("Please enter a valid email address.")
         }
-
         if (!ValidationUtils.isValidPassword(password)) {
-            return@withContext AuthResult.Error(
-                "Password must be at least 6 characters long and include letters and numbers."
-            )
+            return@withContext AuthResult.Error("Password must be at least 6 characters long and include letters and numbers.")
         }
-
         if (password != confirmPassword) {
-            return@withContext AuthResult.Error(
-                "Passwords do not match."
-            )
+            return@withContext AuthResult.Error("Passwords do not match.")
         }
 
+        // Try API registration first
         try {
             val response = api.registerUser(
                 RegisterRequestDto(
@@ -74,51 +66,44 @@ class AuthRepository(context: Context) {
                 )
             )
 
-            if (response.isSuccessful) {
-
-                val dto = response.body()
-
-                if (dto != null) {
-
-                    val user = User(
-                        id = dto.id.toString(),
-                        fullName = dto.name,
-                        email = dto.email,
-                        passwordHash = ""
-                    )
-
-                    // Save the logged-in session locally
-                    sessionManager.saveUserSession(user)
-
-                    AuthResult.Success(user)
-
-                } else {
-                    AuthResult.Error(
-                        "Registration failed: empty response from server."
-                    )
-                }
-
-            } else {
-
-                val errorMessage = when (response.code()) {
-                    400 -> "Registration failed. The email may already be registered."
-                    409 -> "An account with this email already exists."
-                    else -> "Registration failed. Server error: ${response.code()}"
-                }
-
-                AuthResult.Error(errorMessage)
+            if (response.isSuccessful && response.body() != null) {
+                val dto = response.body()!!
+                val user = User(
+                    id = dto.id.toString(),
+                    fullName = dto.name,
+                    email = dto.email,
+                    passwordHash = ValidationUtils.hashPassword(password)
+                )
+                saveUserLocally(user, password)
+                sessionManager.saveUserSession(user)
+                return@withContext AuthResult.Success(user)
             }
-
         } catch (e: Exception) {
-
-            AuthResult.Error(
-                "Unable to connect to the server. Please make sure the DrivePulse API is running."
-            )
+            // API unreachable - fallback to offline/local account creation
         }
+
+        // Check local users
+        if (userPrefs.contains("user_hash_$trimmedEmail")) {
+            return@withContext AuthResult.Error("An account with this email address already exists.")
+        }
+
+        val passwordHash = ValidationUtils.hashPassword(password)
+        val userId = UUID.randomUUID().toString()
+
+        val newUser = User(
+            id = userId,
+            fullName = trimmedName,
+            email = trimmedEmail,
+            passwordHash = passwordHash
+        )
+
+        saveUserLocally(newUser, password)
+        sessionManager.saveUserSession(newUser)
+        return@withContext AuthResult.Success(newUser)
     }
 
     /**
-     * Authenticates an existing user through the REST API.
+     * Authenticates existing user.
      */
     suspend fun login(
         email: String,
@@ -128,19 +113,14 @@ class AuthRepository(context: Context) {
         val trimmedEmail = email.trim().lowercase()
 
         if (trimmedEmail.isBlank()) {
-            return@withContext AuthResult.Error(
-                "Please enter your email address."
-            )
+            return@withContext AuthResult.Error("Please enter your email address.")
         }
-
         if (password.isBlank()) {
-            return@withContext AuthResult.Error(
-                "Please enter your password."
-            )
+            return@withContext AuthResult.Error("Please enter your password.")
         }
 
+        // Try API login
         try {
-
             val response = api.loginUser(
                 LoginRequestDto(
                     email = trimmedEmail,
@@ -148,54 +128,54 @@ class AuthRepository(context: Context) {
                 )
             )
 
-            if (response.isSuccessful) {
-
-                val dto = response.body()
-
-                if (dto != null) {
-
-                    val user = User(
-                        id = dto.id.toString(),
-                        fullName = dto.name,
-                        email = dto.email,
-                        passwordHash = ""
-                    )
-
-                    // Save session locally
-                    sessionManager.saveUserSession(user)
-
-                    AuthResult.Success(user)
-
-                } else {
-
-                    AuthResult.Error(
-                        "Login failed: empty response from server."
-                    )
-                }
-
-            } else {
-
-                when (response.code()) {
-
-                    401 -> AuthResult.Error(
-                        "Invalid email or password. Please try again."
-                    )
-
-                    400 -> AuthResult.Error(
-                        "Please enter a valid email and password."
-                    )
-
-                    else -> AuthResult.Error(
-                        "Login failed. Server error: ${response.code()}"
-                    )
-                }
+            if (response.isSuccessful && response.body() != null) {
+                val dto = response.body()!!
+                val user = User(
+                    id = dto.id.toString(),
+                    fullName = dto.name,
+                    email = dto.email,
+                    passwordHash = ValidationUtils.hashPassword(password)
+                )
+                saveUserLocally(user, password)
+                sessionManager.saveUserSession(user)
+                return@withContext AuthResult.Success(user)
             }
-
         } catch (e: Exception) {
+            // API unreachable - fallback to local login
+        }
 
-            AuthResult.Error(
-                "Unable to connect to the server. Please make sure the DrivePulse API is running."
-            )
+        // Local credentials check
+        val storedHash = userPrefs.getString("user_hash_$trimmedEmail", null)
+        if (storedHash == null) {
+            return@withContext AuthResult.Error("No account found with this email. Please register first.")
+        }
+
+        val enteredHash = ValidationUtils.hashPassword(password)
+        if (storedHash != enteredHash) {
+            return@withContext AuthResult.Error("Invalid email or password. Please try again.")
+        }
+
+        val name = userPrefs.getString("user_name_$trimmedEmail", "DrivePulse User") ?: "DrivePulse User"
+        val userId = userPrefs.getString("user_id_$trimmedEmail", UUID.randomUUID().toString()) ?: UUID.randomUUID().toString()
+
+        val user = User(
+            id = userId,
+            fullName = name,
+            email = trimmedEmail,
+            passwordHash = storedHash
+        )
+
+        sessionManager.saveUserSession(user)
+        return@withContext AuthResult.Success(user)
+    }
+
+    private fun saveUserLocally(user: User, rawPassword: String) {
+        val passwordHash = ValidationUtils.hashPassword(rawPassword)
+        userPrefs.edit().apply {
+            putString("user_hash_${user.email.lowercase()}", passwordHash)
+            putString("user_name_${user.email.lowercase()}", user.fullName)
+            putString("user_id_${user.email.lowercase()}", user.id)
+            commit()
         }
     }
 
@@ -206,17 +186,7 @@ class AuthRepository(context: Context) {
         sessionManager.clearSession()
     }
 
-    /**
-     * Checks if a user is currently logged in.
-     */
-    fun isLoggedIn(): Boolean {
-        return sessionManager.isLoggedIn()
-    }
+    fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
 
-    /**
-     * Gets the currently logged-in user.
-     */
-    fun getCurrentUser(): User? {
-        return sessionManager.getLoggedInUser()
-    }
+    fun getCurrentUser(): User? = sessionManager.getLoggedInUser()
 }

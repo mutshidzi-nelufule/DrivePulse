@@ -7,6 +7,7 @@ import com.example.drivepulse.data.model.MaintenanceRecord
 import com.example.drivepulse.data.model.Vehicle
 import com.example.drivepulse.data.remote.api.ApiClient
 import com.example.drivepulse.data.remote.dto.VehicleDto
+import com.example.drivepulse.data.remote.firebase.FirestoreService
 import com.example.drivepulse.util.HealthScoreCalculator
 import com.example.drivepulse.util.HealthScoreResult
 import com.google.gson.Gson
@@ -14,13 +15,14 @@ import com.google.gson.reflect.TypeToken
 
 /**
  * Shared Persistent Repository providing vehicle data, fuel records,
- * maintenance logs, health score, local persistence, and REST API integration.
+ * maintenance logs, health score, local persistence, REST API integration, and Cloud Firestore sync.
  */
 class VehicleRepository private constructor(context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("drivepulse_data_store", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val api = ApiClient.api
+    private val firestoreService = FirestoreService()
 
     companion object {
         @Volatile
@@ -172,14 +174,11 @@ class VehicleRepository private constructor(context: Context) {
         maintenanceRecords.filter { it.vehicleId == vehicleId }.sortedByDescending { it.odometer }
 
     fun addVehicle(vehicle: Vehicle) {
-        if (vehicle.isDefault || vehicles.isEmpty()) {
-            for (i in vehicles.indices) {
-                vehicles[i] = vehicles[i].copy(isDefault = false)
-            }
-            vehicles.add(vehicle.copy(isDefault = true))
-        } else {
-            vehicles.add(vehicle)
+        for (i in vehicles.indices) {
+            vehicles[i] = vehicles[i].copy(isDefault = false)
         }
+        val newDefaultVehicle = vehicle.copy(isDefault = true)
+        vehicles.add(0, newDefaultVehicle)
         saveVehiclesToDisk()
     }
 
@@ -187,6 +186,13 @@ class VehicleRepository private constructor(context: Context) {
         val index = vehicles.indexOfFirst { it.id == vehicle.id }
         if (index != -1) {
             vehicles[index] = vehicle
+            if (vehicle.isDefault) {
+                for (i in vehicles.indices) {
+                    if (vehicles[i].id != vehicle.id) {
+                        vehicles[i] = vehicles[i].copy(isDefault = false)
+                    }
+                }
+            }
             saveVehiclesToDisk()
         }
     }
@@ -254,6 +260,51 @@ class VehicleRepository private constructor(context: Context) {
         val logs = getMaintenanceRecords(vehicleId)
         return HealthScoreCalculator.calculateHealthScore(vehicle, logs)
     }
+
+    // --- Cloud Firestore Methods ---
+
+    suspend fun saveVehicleToFirestore(vehicle: Vehicle): Result<Unit> {
+        val result = firestoreService.saveVehicle(vehicle)
+        if (result.isSuccess) {
+            addVehicle(vehicle)
+        }
+        return result
+    }
+
+    suspend fun fetchVehicleFromFirestoreById(vehicleId: String): Result<Vehicle?> {
+        val result = firestoreService.getVehicleById(vehicleId)
+        if (result.isSuccess) {
+            result.getOrNull()?.let { fetchedVehicle ->
+                val index = vehicles.indexOfFirst { it.id == fetchedVehicle.id }
+                if (index == -1) {
+                    vehicles.add(fetchedVehicle)
+                } else {
+                    vehicles[index] = fetchedVehicle
+                }
+                saveVehiclesToDisk()
+            }
+        }
+        return result
+    }
+
+    suspend fun fetchAllVehiclesFromFirestore(): Result<List<Vehicle>> {
+        val result = firestoreService.getAllVehicles()
+        if (result.isSuccess) {
+            val remoteVehicles = result.getOrDefault(emptyList())
+            for (remote in remoteVehicles) {
+                val index = vehicles.indexOfFirst { it.id == remote.id }
+                if (index == -1) {
+                    vehicles.add(remote)
+                } else {
+                    vehicles[index] = remote
+                }
+            }
+            saveVehiclesToDisk()
+        }
+        return result
+    }
+
+    // --- REST API Methods ---
 
     suspend fun fetchVehiclesFromApi(): Result<List<Vehicle>> {
         return try {
