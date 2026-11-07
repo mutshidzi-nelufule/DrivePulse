@@ -114,6 +114,26 @@ fun SettingsScreen(
                 }
             }
 
+            // PROMINENT LANGUAGE SELECTION CARD (ENGLISH & TSHIVENDA)
+            SettingsSectionCard(title = "${stringResource(R.string.settings_language)} / Luambo", icon = Icons.Default.Language) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButtonOption(
+                        label = "English 🇿🇦",
+                        selected = settings.language == "English",
+                        onClick = { settingsViewModel.updateLanguage("English") }
+                    )
+                    RadioButtonOption(
+                        label = "Tshivenda 🇿🇦",
+                        selected = settings.language == "Tshivenda",
+                        onClick = { settingsViewModel.updateLanguage("Tshivenda") }
+                    )
+                }
+            }
+
             // Theme Preference Section
             SettingsSectionCard(title = stringResource(R.string.settings_app_theme), icon = Icons.Default.Palette) {
                 Column {
@@ -178,6 +198,21 @@ fun SettingsScreen(
                 }
             }
 
+            // Notifications Section
+            SettingsSectionCard(title = stringResource(R.string.settings_notifications), icon = Icons.Default.Notifications) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(stringResource(R.string.settings_notifications), style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = settings.notificationsEnabled,
+                        onCheckedChange = { settingsViewModel.updateNotifications(it) }
+                    )
+                }
+            }
+
             // Default Vehicle Preference
             if (vehicles.isNotEmpty()) {
                 SettingsSectionCard(title = stringResource(R.string.settings_primary_vehicle), icon = Icons.Default.DirectionsCar) {
@@ -188,44 +223,6 @@ fun SettingsScreen(
                                 selected = settings.defaultVehicleId == vehicle.id,
                                 onClick = { settingsViewModel.updateDefaultVehicle(vehicle.id) }
                             )
-                        }
-                    }
-                }
-            }
-
-            // Notifications & Language Section
-            SettingsSectionCard(title = stringResource(R.string.settings_notifications_language), icon = Icons.Default.Notifications) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(stringResource(R.string.settings_notifications), style = MaterialTheme.typography.bodyMedium)
-                        Switch(
-                            checked = settings.notificationsEnabled,
-                            onCheckedChange = { settingsViewModel.updateNotifications(it) }
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Language, contentDescription = null)
-                            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row {
-                            RadioButtonOption("English", selected = settings.language == "English") {
-                                settingsViewModel.updateLanguage("English")
-                            }
-                            Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                            RadioButtonOption("Tshivenda", selected = settings.language == "Tshivenda") {
-                                settingsViewModel.updateLanguage("Tshivenda")
-                            }
                         }
                     }
                 }
@@ -289,6 +286,6 @@ fun RadioButtonOption(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.clickable(onClick = onClick)
     ) {
         RadioButton(selected = selected, onClick = onClick)
-        Text(text = label, style = MaterialTheme.typography.bodySmall)
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
     }
 }
