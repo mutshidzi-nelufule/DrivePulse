@@ -7,6 +7,7 @@ import com.example.drivepulse.data.model.User
 import com.example.drivepulse.data.remote.api.ApiClient
 import com.example.drivepulse.data.remote.dto.LoginRequestDto
 import com.example.drivepulse.data.remote.dto.RegisterRequestDto
+import com.example.drivepulse.data.remote.firebase.GoogleAuthClient
 import com.example.drivepulse.util.ValidationUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -180,10 +181,28 @@ class AuthRepository(context: Context) {
     }
 
     /**
+     * Authenticates user using Google Single Sign-On (SSO).
+     */
+    suspend fun signInWithGoogle(context: Context): AuthResult = withContext(Dispatchers.IO) {
+        val googleAuthClient = GoogleAuthClient(context)
+        val result = googleAuthClient.signInWithGoogle()
+        if (result is AuthResult.Success) {
+            sessionManager.saveUserSession(result.user)
+            saveUserLocally(result.user, "GoogleSSO")
+        }
+        return@withContext result
+    }
+
+    /**
      * Logs out the current user session.
      */
     fun logout() {
         sessionManager.clearSession()
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        } catch (e: Exception) {
+            // Logged out
+        }
     }
 
     fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()

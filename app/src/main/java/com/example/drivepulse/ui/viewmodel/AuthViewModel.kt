@@ -121,6 +121,32 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun signInWithGoogle(context: android.content.Context, onSuccess: () -> Unit) {
+        if (loginState.isLoading) return
+
+        loginState = loginState.copy(
+            isLoading = true,
+            errorMessage = null
+        )
+
+        viewModelScope.launch {
+            val result = authRepository.signInWithGoogle(context)
+            when (result) {
+                is AuthResult.Success -> {
+                    currentUser = result.user
+                    loginState = LoginUiState()
+                    onSuccess()
+                }
+                is AuthResult.Error -> {
+                    loginState = loginState.copy(
+                        isLoading = false,
+                        errorMessage = if (result.message.contains("cancelled", ignoreCase = true)) null else result.message
+                    )
+                }
+            }
+        }
+    }
+
 
     // REGISTRATION
 

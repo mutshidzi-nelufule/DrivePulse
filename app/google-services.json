@@ -12,7 +12,20 @@
           "package_name": "com.example.drivepulse"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "725406471578-m58hvima34uulldk1ts9m30dce5jvftv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.drivepulse",
+            "certificate_hash": "76e869521761013ee6869975c094f079fcf13266"
+          }
+        },
+        {
+          "client_id": "725406471578-31ueapq0rcnsvt4katj4m5fn9ml2aa00.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAXWasmQlOeU0t4qKT6lxOe4gVtnTLn7p0"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "725406471578-31ueapq0rcnsvt4katj4m5fn9ml2aa00.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
